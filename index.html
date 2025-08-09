@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newbrough Parish Burial Records</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            font-style: italic;
+        }
+
+        .search-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .search-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-search {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-search:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-clear {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .results-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .results-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .results-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .results-table {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #3498db;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            display: block;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-buttons {
+                flex-direction: column;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📜 Newbrough Parish Burial Records</h1>
+            <p>Historical burial records from 1695 to present day</p>
+            <div style="margin-top: 15px; padding: 15px; background: #ecf0f1; border-radius: 8px; font-size: 0.9rem; color: #2c3e50;">
+                <strong>Welcome to our burial records database</strong><br>
+                This searchable database contains burial records for Newbrough Parish Church. 
+                You can search by name, location, or date range to find historical burial information.
+                Records are regularly updated as new information becomes available.
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="total-records">0</span>
+                <div class="stat-label">Total Records</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="date-range">Loading...</span>
+                <div class="stat-label">Date Range</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="locations-count">0</span>
+                <div class="stat-label">Locations</div>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <form class="search-form" id="search-form">
+                <div class="form-group">
+                    <label for="surname">Surname:</label>
+                    <input type="text" id="surname" placeholder="Enter surname...">
+                </div>
+                <div class="form-group">
+                    <label for="forename">Forename:</label>
+                    <input type="text" id="forename" placeholder="Enter forename...">
+                </div>
+                <div class="form-group">
+                    <label for="location">Location:</label>
+                    <select id="location">
+                        <option value="">All locations</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="year-from">From Year:</label>
+                    <input type="number" id="year-from" placeholder="1695" min="1695" max="2024">
+                </div>
+                <div class="form-group">
+                    <label for="year-to">To Year:</label>
+                    <input type="number" id="year-to" placeholder="2024" min="1695" max="2024">
+                </div>
+            </form>
+            
+            <div class="search-buttons">
+                <button type="button" class="btn btn-search" onclick="performSearch()">
+                    🔍 Search Records
+                </button>
+                <button type="button" class="btn btn-clear" onclick="clearSearch()">
+                    🗑️ Clear All
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container">
+            <div class="results-header">
+                <div class="results-count" id="results-count">Loading burial records...</div>
+            </div>
+            <div class="results-table" id="results-container">
+                <div class="loading">Loading data...</div>
+            </div>
+        </div>
+
+        <footer style="margin-top: 40px; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center; color: #7f8c8d;">
+            <div style="border-bottom: 1px solid #ecf0f1; padding-bottom: 20px; margin-bottom: 20px;">
+                <h3 style="color: #2c3e50; margin-bottom: 10px;">About This Database</h3>
+                <p style="max-width: 800px; margin: 0 auto; line-height: 1.6;">
+                    These burial records have been carefully digitized to preserve the historical heritage of Newbrough Parish Church.
+                    The records span over 300 years of local history and are made available for genealogical research and historical interest.
+                </p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4 style="color: #2c3e50; margin-bottom: 5px;">Contact Information</h4>
+                    <p>For questions about these records or to report corrections:<br>
+                    <strong>Email:</strong> <a href="mailto:revdjem@gmail.com" style="color: #3498db;">revdjem@gmail.com</a></p>
+                </div>
+                <div>
+                    <h4 style="color: #2c3e50; margin-bottom: 5px;">Last Updated</h4>
+                    <p id="last-updated">Loading...</p>
+                    <p style="font-size: 0.8rem;">Records are updated regularly</p>
+                </div>
+                <div>
+                    <h4 style="color: #2c3e50; margin-bottom: 5px;">Usage</h4>
+                    <p style="font-size: 0.9rem;">These records are provided for genealogical research and historical purposes. 
+                    Please respect the memory of those recorded here.</p>
+                </div>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: #95a5a6;">
+                Newbrough Parish Church Burial Records Database © 2025<br>
+                Digitized and maintained with care for future generations
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        let allRecords = [];
+        let currentResults = [];
+
+        // Load and parse the Excel file
+        async function loadData() {
+            try {
+                const response = await window.fs.readFile('Newbrough burials from Parish d base.xlsx');
+                const workbook = XLSX.read(response);
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                allRecords = XLSX.utils.sheet_to_json(worksheet);
+                
+                console.log('Loaded records:', allRecords.length);
+                
+                // Initialize the application
+                populateLocationDropdown();
+                updateStats();
+                showAllRecords();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('results-container').innerHTML = 
+                    '<div class="no-results">Error loading burial records. Please ensure the Excel file is available.</div>';
+            }
+        }
+
+        function populateLocationDropdown() {
+            const locationSelect = document.getElementById('location');
+            const locations = [...new Set(allRecords.map(r => r.Of).filter(Boolean))].sort();
+            
+            locations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                locationSelect.appendChild(option);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('total-records').textContent = allRecords.length.toLocaleString();
+            
+            // Get date range
+            const years = allRecords.map(r => {
+                const dateStr = r.Date;
+                if (dateStr) {
+                    const yearMatch = dateStr.match(/\b(\d{4})\b/);
+                    return yearMatch ? parseInt(yearMatch[1]) : null;
+                }
+                return null;
+            }).filter(y => y !== null);
+            
+            if (years.length > 0) {
+                const minYear = Math.min(...years);
+                const maxYear = Math.max(...years);
+                document.getElementById('date-range').textContent = `${minYear} - ${maxYear}`;
+            }
+            
+            // Count unique locations
+            const uniqueLocations = new Set(allRecords.map(r => r.Of).filter(Boolean));
+            document.getElementById('locations-count').textContent = uniqueLocations.size;
+            
+            // Update last updated date (you can manually change this when you update records)
+            document.getElementById('last-updated').textContent = 'June 2024';
+        }
+
+        function performSearch() {
+            const surname = document.getElementById('surname').value.trim().toLowerCase();
+            const forename = document.getElementById('forename').value.trim().toLowerCase();
+            const location = document.getElementById('location').value;
+            const yearFrom = document.getElementById('year-from').value;
+            const yearTo = document.getElementById('year-to').value;
+
+            currentResults = allRecords.filter(record => {
+                // Surname filter
+                if (surname && !record.Surname.toLowerCase().includes(surname)) {
+                    return false;
+                }
+                
+                // Forename filter
+                if (forename && !record.Forename.toLowerCase().includes(forename)) {
+                    return false;
+                }
+                
+                // Location filter
+                if (location && record.Of !== location) {
+                    return false;
+                }
+                
+                // Year range filter
+                if (yearFrom || yearTo) {
+                    const yearMatch = record.Date ? record.Date.match(/\b(\d{4})\b/) : null;
+                    if (yearMatch) {
+                        const recordYear = parseInt(yearMatch[1]);
+                        if (yearFrom && recordYear < parseInt(yearFrom)) return false;
+                        if (yearTo && recordYear > parseInt(yearTo)) return false;
+                    } else if (yearFrom || yearTo) {
+                        return false; // Exclude records without valid years if year filtering is applied
+                    }
+                }
+                
+                return true;
+            });
+
+            displayResults(currentResults);
+        }
+
+        function showAllRecords() {
+            currentResults = [...allRecords];
+            displayResults(currentResults);
+        }
+
+        function displayResults(results) {
+            const resultsContainer = document.getElementById('results-container');
+            const resultsCount = document.getElementById('results-count');
+            
+            resultsCount.textContent = `Found ${results.length.toLocaleString()} burial record${results.length !== 1 ? 's' : ''}`;
+            
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">No burial records found matching your search criteria.</div>';
+                return;
+            }
+
+            const tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Surname</th>
+                            <th>Forename</th>
+                            <th>Location</th>
+                            <th>Age</th>
+                            <th>Grave #</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(record => `
+                            <tr>
+                                <td>${record.Date || ''}</td>
+                                <td><strong>${record.Surname || ''}</strong></td>
+                                <td>${record.Forename || ''}</td>
+                                <td>${record.Of || ''}</td>
+                                <td>${record.Age || ''}</td>
+                                <td>${record['Grave plan Number'] || ''}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            resultsContainer.innerHTML = tableHtml;
+        }
+
+        function clearSearch() {
+            document.getElementById('search-form').reset();
+            showAllRecords();
+        }
+
+        // Handle Enter key in search fields
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.matches('#surname, #forename, #year-from, #year-to')) {
+                performSearch();
+            }
+        });
+
+        // Load data when page loads
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>
