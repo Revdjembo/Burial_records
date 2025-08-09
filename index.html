@@ -354,8 +354,13 @@
         // Load and parse the Excel file
         async function loadData() {
             try {
-                const response = await window.fs.readFile('Newbrough burials from Parish d base.xlsx');
-                const workbook = XLSX.read(response);
+                // Fetch the Excel file from the same directory
+                const response = await fetch('Newbrough burials from Parish d base.xlsx');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 allRecords = XLSX.utils.sheet_to_json(worksheet);
                 
@@ -369,7 +374,7 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.getElementById('results-container').innerHTML = 
-                    '<div class="no-results">Error loading burial records. Please ensure the Excel file is available.</div>';
+                    '<div class="no-results">Error loading burial records. Please check that the Excel file is available.<br><br>Error details: ' + error.message + '</div>';
             }
         }
 
