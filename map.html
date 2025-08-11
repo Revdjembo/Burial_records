@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newbrough Churchyard Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .map-controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 200px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .map-svg {
+            max-width: 100%;
+            max-height: 70vh;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 50%;
+            right: -400px;
+            transform: translateY(-50%);
+            width: 350px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 25px;
+            transition: right 0.3s ease;
+            z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .info-panel.active {
+            right: 20px;
+        }
+
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .burial-record {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+
+        .burial-record h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .burial-detail {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .close-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .close-panel:hover {
+            color: #e74c3c;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-symbol {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #34495e;
+            display: inline-block;
+        }
+
+        .highlighted-grave {
+            fill: #e74c3c !important;
+            stroke: #c0392b !important;
+            stroke-width: 3px !important;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .clickable-grave {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clickable-grave:hover {
+            fill: #f39c12 !important;
+            stroke: #e67e22 !important;
+            stroke-width: 2px;
+        }
+
+        .no-svg {
+            padding: 40px;
+            text-align: center;
+            color: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                top: auto;
+                bottom: -400px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+                transform: none;
+                transition: bottom 0.3s ease;
+            }
+
+            .info-panel.active {
+                bottom: 20px;
+                right: 10px;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Newbrough Churchyard Map</h1>
+        <div class="nav-buttons">
+            <a href="index.html" class="btn btn-primary">← Back to Search</a>
+            <button class="btn btn-secondary" onclick="showFullMap()">View Full Map</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="map-container">
+            <div class="map-controls">
+                <input type="text" id="grave-search" class="search-box" placeholder="Enter grave number...">
+                <button class="btn btn-primary" onclick="findGrave()">🔍 Find Grave</button>
+                <button class="btn btn-secondary" onclick="clearHighlight()">Clear Highlight</button>
+            </div>
+
+            <div id="map-display">
+                <!-- SVG will be loaded here -->
+                <div class="no-svg">
+                    <h3>Interactive Map Loading...</h3>
+                    <p>The churchyard map will appear here once your SVG file is properly configured.</p>
+                    <br>
+                    <p><strong>Instructions for setup:</strong></p>
+                    <p>1. Ensure your SVG file is named exactly as referenced in the code</p>
+                    <p>2. The SVG should contain text elements with grave numbers</p>
+                    <p>3. Upload the SVG to your GitHub repository</p>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-symbol" style="background: #3498db;"></div>
+                    <span>Grave with headstone/cross</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol" style="background: #95a5a6;"></div>
+                    <span>Head or foot stone</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol" style="background: #e67e22;"></div>
+                    <span>Flatstone</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol" style="background: #e74c3c;"></div>
+                    <span>Highlighted grave</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-panel" id="info-panel">
+        <button class="close-panel" onclick="closeInfoPanel()">×</button>
+        <h3 id="panel-title">Grave Information</h3>
+        <div id="panel-content">
+            <p>Click on a grave number to see burial records.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        let allRecords = [];
+        let currentHighlighted = null;
+
+        // Load burial records data
+        async function loadBurialData() {
+            try {
+                const response = await fetch('Newbrough burials from Parish d base.xlsx');
+                if (!response.ok) throw new Error('Could not load burial records');
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                allRecords = XLSX.utils.sheet_to_json(worksheet);
+                
+                console.log('Loaded burial records:', allRecords.length);
+            } catch (error) {
+                console.error('Error loading burial data:', error);
+            }
+        }
+
+        // Load and display the SVG map
+        async function loadMap() {
+            try {
+                const response = await fetch('Newbrough Churchyard Survey.svg');
+                if (!response.ok) throw new Error('SVG file not found');
+                
+                const svgContent = await response.text();
+                document.getElementById('map-display').innerHTML = svgContent;
+                
+                // Make grave numbers clickable
+                makeGravesClickable();
+                
+                // Check if we need to highlight a specific grave from URL
+                checkUrlParameters();
+                
+            } catch (error) {
+                console.error('Error loading SVG:', error);
+                document.getElementById('map-display').innerHTML = `
+                    <div class="no-svg">
+                        <h3>⚠️ Map Not Available</h3>
+                        <p>Could not load the churchyard map SVG file.</p>
+                        <p>Please ensure "Newbrough Churchyard Survey.svg" is uploaded to your repository.</p>
+                        <br>
+                        <p><em>You can still search burial records using the link above.</em></p>
+                    </div>
+                `;
+            }
+        }
+
+        // Make graves in SVG clickable
+        function makeGravesClickable() {
+            const svg = document.querySelector('#map-display svg');
+            if (!svg) return;
+
+            // Find all text elements that contain numbers (potential grave numbers)
+            const textElements = svg.querySelectorAll('text');
+            textElements.forEach(textElement => {
+                const textContent = textElement.textContent.trim();
+                const graveNumber = parseInt(textContent);
+                
+                if (!isNaN(graveNumber) && graveNumber > 0) {
+                    textElement.classList.add('clickable-grave');
+                    textElement.style.cursor = 'pointer';
+                    textElement.addEventListener('click', () => showGraveInfo(graveNumber));
+                    
+                    // Also make parent elements clickable if they exist
+                    const parent = textElement.parentElement;
+                    if (parent.tagName !== 'svg') {
+                        parent.classList.add('clickable-grave');
+                        parent.addEventListener('click', () => showGraveInfo(graveNumber));
+                    }
+                }
+            });
+        }
+
+        // Show information for a specific grave
+        function showGraveInfo(graveNumber) {
+            const graveRecords = allRecords.filter(record => 
+                record['Grave plan Number'] === graveNumber
+            );
+
+            const panel = document.getElementById('info-panel');
+            const title = document.getElementById('panel-title');
+            const content = document.getElementById('panel-content');
+
+            title.textContent = `Grave ${graveNumber}`;
+            
+            if (graveRecords.length === 0) {
+                content.innerHTML = `
+                    <div class="burial-record">
+                        <h4>No Records Found</h4>
+                        <p>No burial records found for grave ${graveNumber}.</p>
+                        <p><em>This may indicate an empty grave or records not yet digitized.</em></p>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = graveRecords.map(record => `
+                    <div class="burial-record">
+                        <h4>${record.Forename} ${record.Surname}</h4>
+                        <div class="burial-detail"><strong>Date:</strong> ${record.Date || 'Not recorded'}</div>
+                        <div class="burial-detail"><strong>Age:</strong> ${record.Age || 'Not recorded'}</div>
+                        <div class="burial-detail"><strong>Location:</strong> ${record.Of || 'Not recorded'}</div>
+                    </div>
+                `).join('');
+            }
+
+            panel.classList.add('active');
+            highlightGrave(graveNumber);
+        }
+
+        // Highlight a specific grave on the map
+        function highlightGrave(graveNumber) {
+            clearHighlight();
+            
+            const svg = document.querySelector('#map-display svg');
+            if (!svg) return;
+
+            const textElements = svg.querySelectorAll('text');
+            textElements.forEach(textElement => {
+                if (textElement.textContent.trim() == graveNumber) {
+                    textElement.classList.add('highlighted-grave');
+                    currentHighlighted = textElement;
+                    
+                    // Scroll the element into view
+                    textElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        // Clear any highlighting
+        function clearHighlight() {
+            if (currentHighlighted) {
+                currentHighlighted.classList.remove('highlighted-grave');
+                currentHighlighted = null;
+            }
+        }
+
+        // Find grave by number
+        function findGrave() {
+            const graveNumber = document.getElementById('grave-search').value.trim();
+            if (graveNumber && !isNaN(graveNumber)) {
+                showGraveInfo(parseInt(graveNumber));
+            }
+        }
+
+        // Show full map view
+        function showFullMap() {
+            closeInfoPanel();
+            clearHighlight();
+        }
+
+        // Close the info panel
+        function closeInfoPanel() {
+            document.getElementById('info-panel').classList.remove('active');
+        }
+
+        // Check URL parameters for specific grave to highlight
+        function checkUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const graveParam = urlParams.get('grave');
+            const nameParam = urlParams.get('name');
+            
+            if (graveParam) {
+                setTimeout(() => {
+                    showGraveInfo(parseInt(graveParam));
+                    if (nameParam) {
+                        document.getElementById('panel-title').textContent = 
+                            `Grave ${graveParam} - ${decodeURIComponent(nameParam)}`;
+                    }
+                }, 500); // Small delay to ensure SVG is loaded
+            }
+        }
+
+        // Handle Enter key in search
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.id === 'grave-search') {
+                findGrave();
+            }
+        });
+
+        // Initialize the map
+        window.addEventListener('load', async function() {
+            await loadBurialData();
+            await loadMap();
+        });
+    </script>
+</body>
+</html>

@@ -484,6 +484,7 @@
                             <th>Location</th>
                             <th>Age</th>
                             <th>Grave #</th>
+                            <th>Map</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -494,7 +495,15 @@
                                 <td>${record.Forename || ''}</td>
                                 <td>${record.Of || ''}</td>
                                 <td>${record.Age || ''}</td>
-                                <td>${record['Grave plan Number'] || ''}</td>
+                                <td>${record['Grave plan Number'] ? 
+                                    `<span style="font-weight: bold;">${record['Grave plan Number']}</span>` : 
+                                    ''}</td>
+                                <td>${record['Grave plan Number'] ? 
+                                    `<button onclick="showOnMap(${record['Grave plan Number']}, '${record.Surname}', '${record.Forename}')" 
+                                            style="background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                                        📍 Show on Map
+                                    </button>` : 
+                                    '<span style="color: #7f8c8d; font-size: 11px;">No headstone</span>'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -515,6 +524,12 @@
                 performSearch();
             }
         });
+
+        // Function to show grave location on map
+        function showOnMap(graveNumber, surname, forename) {
+            const mapUrl = `map.html?grave=${graveNumber}&name=${encodeURIComponent(surname + ', ' + forename)}`;
+            window.open(mapUrl, '_blank');
+        }
 
         // Load data when page loads
         window.addEventListener('load', loadData);
