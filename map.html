@@ -529,16 +529,21 @@
             const svg = document.querySelector('#map-display svg');
             if (!svg) return;
 
+            const oldZoom = currentZoom;
             const newZoom = Math.min(Math.max(currentZoom * factor, 0.5), 5);
             
             if (centerX !== null && centerY !== null) {
-                // Zoom towards mouse position
+                // Zoom towards mouse position - corrected calculation
+                currentPanX = centerX - (centerX - currentPanX) * (newZoom / oldZoom);
+                currentPanY = centerY - (centerY - currentPanY) * (newZoom / oldZoom);
+            } else {
+                // Zoom towards center of current view
                 const rect = svg.getBoundingClientRect();
-                const svgCenterX = rect.width / 2;
-                const svgCenterY = rect.height / 2;
+                const centerXView = rect.width / 2;
+                const centerYView = rect.height / 2;
                 
-                currentPanX = svgCenterX - (centerX - currentPanX) * (newZoom / currentZoom);
-                currentPanY = svgCenterY - (centerY - currentPanY) * (newZoom / currentZoom);
+                currentPanX = centerXView - (centerXView - currentPanX) * (newZoom / oldZoom);
+                currentPanY = centerYView - (centerYView - currentPanY) * (newZoom / oldZoom);
             }
             
             currentZoom = newZoom;
@@ -563,10 +568,19 @@
         }
 
         function resetZoom() {
+            const svg = document.querySelector('#map-display svg');
+            if (!svg) return;
+            
             currentZoom = 1;
             currentPanX = 0;
             currentPanY = 0;
+            
+            svg.style.transition = 'transform 0.5s ease-in-out';
             updateTransform();
+            
+            setTimeout(() => {
+                svg.style.transition = 'transform 0.3s ease';
+            }, 500);
         }
         function makeGravesClickable() {
             const svg = document.querySelector('#map-display svg');
@@ -681,32 +695,48 @@
         // Zoom to and center on a specific grave
         function zoomToGrave(graveElement) {
             const svg = document.querySelector('#map-display svg');
-            if (!svg || !graveElement) return;
+            const wrapper = document.querySelector('.map-wrapper');
+            if (!svg || !graveElement || !wrapper) return;
 
-            // Get the position of the grave element
-            const bbox = graveElement.getBBox();
-            const svgRect = svg.getBoundingClientRect();
-            
-            // Calculate center position of the grave
-            const graveCenterX = bbox.x + bbox.width / 2;
-            const graveCenterY = bbox.y + bbox.height / 2;
-            
-            // Set zoom level for good visibility
-            currentZoom = 3;
-            
-            // Center the grave in the view
-            currentPanX = (svgRect.width / 2) - (graveCenterX * currentZoom);
-            currentPanY = (svgRect.height / 2) - (graveCenterY * currentZoom);
-            
-            // Apply transform with smooth transition
-            const svgElement = svg;
-            svgElement.style.transition = 'transform 0.8s ease-in-out';
-            updateTransform();
-            
-            // Remove transition after animation
-            setTimeout(() => {
-                svgElement.style.transition = 'transform 0.3s ease';
-            }, 800);
+            try {
+                // Get SVG dimensions and wrapper dimensions
+                const svgRect = svg.getBoundingClientRect();
+                const wrapperRect = wrapper.getBoundingClientRect();
+                
+                // Get the bounding box of the grave element
+                const bbox = graveElement.getBBox();
+                
+                // Calculate the center of the grave in SVG coordinates
+                const graveCenterX = bbox.x + bbox.width / 2;
+                const graveCenterY = bbox.y + bbox.height / 2;
+                
+                // Set zoom level
+                currentZoom = 2.5;
+                
+                // Calculate where the grave center should be positioned to center it in the view
+                // We want the grave center to appear at the center of the wrapper
+                const targetX = wrapperRect.width / 2;
+                const targetY = wrapperRect.height / 2;
+                
+                // Calculate the required pan to center the grave
+                currentPanX = targetX - (graveCenterX * currentZoom);
+                currentPanY = targetY - (graveCenterY * currentZoom);
+                
+                // Apply transform with smooth transition
+                svg.style.transition = 'transform 0.8s ease-in-out';
+                updateTransform();
+                
+                // Remove transition after animation
+                setTimeout(() => {
+                    svg.style.transition = 'transform 0.3s ease';
+                }, 800);
+                
+            } catch (error) {
+                console.warn('Could not zoom to grave:', error);
+                // Fallback: just zoom in at current position
+                currentZoom = 2.5;
+                updateTransform();
+            }
         }
 
         // Clear any highlighting
