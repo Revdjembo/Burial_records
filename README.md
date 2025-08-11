@@ -128,7 +128,7 @@ This is a personal heritage project. For suggestions or historical corrections, 
 
 ## 📄 License
 
-This project preserves historical parish records for educational and genealogical research purposes. The records themselves are historical documents; the digital presentation is created and maintained by Rev. James.
+This project preserves historical parish records for educational and genealogical research purposes. The records themselves are historical documents; the digital presentation is created and maintained by Rev. Canon Jeremy THompson.
 
 ---
 
