@@ -119,7 +119,6 @@
             max-width: 100%;
             max-height: 70vh;
             cursor: grab;
-            transition: transform 0.3s ease;
         }
 
         #map-display svg:active {
@@ -379,11 +378,8 @@
         let allRecords = [];
         let currentHighlighted = null;
         let currentZoom = 1;
-        let currentPanX = 0;
-        let currentPanY = 0;
-        let isDragging = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
+        let viewBox = { x: 0, y: 0, width: 0, height: 0 };
+        let originalViewBox = null;
 
         // Load burial records data
         async function loadBurialData() {
@@ -450,38 +446,74 @@
             const svg = document.querySelector('#map-display svg');
             if (!svg) return;
 
+            // Store original viewBox or create one
+            if (svg.viewBox && svg.viewBox.baseVal) {
+                originalViewBox = {
+                    x: svg.viewBox.baseVal.x,
+                    y: svg.viewBox.baseVal.y,
+                    width: svg.viewBox.baseVal.width,
+                    height: svg.viewBox.baseVal.height
+                };
+            } else {
+                // Create viewBox from SVG dimensions
+                const bbox = svg.getBBox();
+                originalViewBox = {
+                    x: bbox.x,
+                    y: bbox.y,
+                    width: bbox.width,
+                    height: bbox.height
+                };
+                svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+            }
+
+            viewBox = { ...originalViewBox };
+            
+            // Ensure SVG is properly sized
+            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            
+            console.log('Original viewBox:', originalViewBox);
+
             // Mouse wheel zoom
             svg.addEventListener('wheel', function(e) {
                 e.preventDefault();
                 const rect = svg.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
                 
-                const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-                zoom(zoomDelta, mouseX, mouseY);
+                const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+                zoomAtPoint(x, y, zoomFactor);
             });
 
             // Mouse drag to pan
+            let isDragging = false;
+            let lastX = 0;
+            let lastY = 0;
+
             svg.addEventListener('mousedown', function(e) {
                 isDragging = true;
-                lastMouseX = e.clientX;
-                lastMouseY = e.clientY;
+                const rect = svg.getBoundingClientRect();
+                lastX = (e.clientX - rect.left) / rect.width;
+                lastY = (e.clientY - rect.top) / rect.height;
                 svg.style.cursor = 'grabbing';
             });
 
             svg.addEventListener('mousemove', function(e) {
                 if (!isDragging) return;
                 
-                const deltaX = e.clientX - lastMouseX;
-                const deltaY = e.clientY - lastMouseY;
+                const rect = svg.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
                 
-                currentPanX += deltaX;
-                currentPanY += deltaY;
+                const dx = (x - lastX) * viewBox.width;
+                const dy = (y - lastY) * viewBox.height;
                 
-                updateTransform();
+                viewBox.x -= dx;
+                viewBox.y -= dy;
                 
-                lastMouseX = e.clientX;
-                lastMouseY = e.clientY;
+                updateViewBox();
+                
+                lastX = x;
+                lastY = y;
             });
 
             svg.addEventListener('mouseup', function() {
@@ -493,94 +525,59 @@
                 isDragging = false;
                 svg.style.cursor = 'grab';
             });
-
-            // Touch support for mobile
-            svg.addEventListener('touchstart', function(e) {
-                if (e.touches.length === 1) {
-                    isDragging = true;
-                    lastMouseX = e.touches[0].clientX;
-                    lastMouseY = e.touches[0].clientY;
-                }
-            });
-
-            svg.addEventListener('touchmove', function(e) {
-                e.preventDefault();
-                if (!isDragging || e.touches.length !== 1) return;
-                
-                const deltaX = e.touches[0].clientX - lastMouseX;
-                const deltaY = e.touches[0].clientY - lastMouseY;
-                
-                currentPanX += deltaX;
-                currentPanY += deltaY;
-                
-                updateTransform();
-                
-                lastMouseX = e.touches[0].clientX;
-                lastMouseY = e.touches[0].clientY;
-            });
-
-            svg.addEventListener('touchend', function() {
-                isDragging = false;
-            });
         }
 
-        // Zoom function
-        function zoom(factor, centerX = null, centerY = null) {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-
-            const oldZoom = currentZoom;
-            const newZoom = Math.min(Math.max(currentZoom * factor, 0.5), 5);
+        // Zoom at a specific point (x and y are 0-1 normalized coordinates)
+        function zoomAtPoint(x, y, factor) {
+            const newWidth = viewBox.width * factor;
+            const newHeight = viewBox.height * factor;
             
-            if (centerX !== null && centerY !== null) {
-                // Zoom towards mouse position - corrected calculation
-                currentPanX = centerX - (centerX - currentPanX) * (newZoom / oldZoom);
-                currentPanY = centerY - (centerY - currentPanY) * (newZoom / oldZoom);
-            } else {
-                // Zoom towards center of current view
-                const rect = svg.getBoundingClientRect();
-                const centerXView = rect.width / 2;
-                const centerYView = rect.height / 2;
-                
-                currentPanX = centerXView - (centerXView - currentPanX) * (newZoom / oldZoom);
-                currentPanY = centerYView - (centerYView - currentPanY) * (newZoom / oldZoom);
-            }
+            // Prevent excessive zoom
+            const maxZoom = 10;
+            const minZoom = 0.5;
+            const currentZoomLevel = originalViewBox.width / viewBox.width;
+            const newZoomLevel = currentZoomLevel / factor;
             
-            currentZoom = newZoom;
-            updateTransform();
+            if (newZoomLevel > maxZoom || newZoomLevel < minZoom) return;
+            
+            viewBox.x += (viewBox.width - newWidth) * x;
+            viewBox.y += (viewBox.height - newHeight) * y;
+            viewBox.width = newWidth;
+            viewBox.height = newHeight;
+            
+            currentZoom = originalViewBox.width / viewBox.width;
+            updateViewBox();
         }
 
-        // Update SVG transform
-        function updateTransform() {
+        // Update the SVG viewBox
+        function updateViewBox() {
             const svg = document.querySelector('#map-display svg');
             if (!svg) return;
             
-            svg.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
         }
 
         // Zoom controls
         function zoomIn() {
-            zoom(1.3);
+            zoomAtPoint(0.5, 0.5, 0.8); // Zoom into center
         }
 
         function zoomOut() {
-            zoom(0.7);
+            zoomAtPoint(0.5, 0.5, 1.25); // Zoom out from center
         }
 
         function resetZoom() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-            
+            viewBox = { ...originalViewBox };
             currentZoom = 1;
-            currentPanX = 0;
-            currentPanY = 0;
             
-            svg.style.transition = 'transform 0.5s ease-in-out';
-            updateTransform();
-            
-            setTimeout(() => {
-                svg.style.transition = 'transform 0.3s ease';
-            }, 500);
+            const svg = document.querySelector('#map-display svg');
+            if (svg) {
+                svg.style.transition = 'all 0.5s ease-in-out';
+                updateViewBox();
+                setTimeout(() => {
+                    svg.style.transition = '';
+                }, 500);
+            }
         }
         function makeGravesClickable() {
             const svg = document.querySelector('#map-display svg');
@@ -694,48 +691,44 @@
 
         // Zoom to and center on a specific grave
         function zoomToGrave(graveElement) {
-            const svg = document.querySelector('#map-display svg');
-            const wrapper = document.querySelector('.map-wrapper');
-            if (!svg || !graveElement || !wrapper) return;
+            if (!graveElement || !originalViewBox) return;
 
             try {
-                // Get SVG dimensions and wrapper dimensions
-                const svgRect = svg.getBoundingClientRect();
-                const wrapperRect = wrapper.getBoundingClientRect();
-                
                 // Get the bounding box of the grave element
                 const bbox = graveElement.getBBox();
                 
-                // Calculate the center of the grave in SVG coordinates
+                // Calculate the center of the grave
                 const graveCenterX = bbox.x + bbox.width / 2;
                 const graveCenterY = bbox.y + bbox.height / 2;
                 
-                // Set zoom level
-                currentZoom = 2.5;
+                // Set zoom level (zoom in to show detail)
+                const zoomLevel = 3;
+                const newWidth = originalViewBox.width / zoomLevel;
+                const newHeight = originalViewBox.height / zoomLevel;
                 
-                // Calculate where the grave center should be positioned to center it in the view
-                // We want the grave center to appear at the center of the wrapper
-                const targetX = wrapperRect.width / 2;
-                const targetY = wrapperRect.height / 2;
+                // Center the viewBox on the grave
+                viewBox.x = graveCenterX - newWidth / 2;
+                viewBox.y = graveCenterY - newHeight / 2;
+                viewBox.width = newWidth;
+                viewBox.height = newHeight;
                 
-                // Calculate the required pan to center the grave
-                currentPanX = targetX - (graveCenterX * currentZoom);
-                currentPanY = targetY - (graveCenterY * currentZoom);
+                currentZoom = zoomLevel;
                 
-                // Apply transform with smooth transition
-                svg.style.transition = 'transform 0.8s ease-in-out';
-                updateTransform();
-                
-                // Remove transition after animation
-                setTimeout(() => {
-                    svg.style.transition = 'transform 0.3s ease';
-                }, 800);
+                // Apply with smooth transition
+                const svg = document.querySelector('#map-display svg');
+                if (svg) {
+                    svg.style.transition = 'all 0.8s ease-in-out';
+                    updateViewBox();
+                    
+                    setTimeout(() => {
+                        svg.style.transition = '';
+                    }, 800);
+                }
                 
             } catch (error) {
                 console.warn('Could not zoom to grave:', error);
                 // Fallback: just zoom in at current position
-                currentZoom = 2.5;
-                updateTransform();
+                zoomAtPoint(0.5, 0.5, 0.3);
             }
         }
 
