@@ -331,7 +331,14 @@
         // Load and display the SVG map
         async function loadMap() {
             try {
-                const response = await fetch('Newbrough Churchyard Survey.svg');
+                // Try loading the survey map first, then fall back to the simpler version
+                let response;
+                try {
+                    response = await fetch('Newbrough Churchyard survey.svg');
+                } catch (e) {
+                    response = await fetch('Newbrough Churchyard.svg');
+                }
+                
                 if (!response.ok) throw new Error('SVG file not found');
                 
                 const svgContent = await response.text();
@@ -349,7 +356,7 @@
                     <div class="no-svg">
                         <h3>⚠️ Map Not Available</h3>
                         <p>Could not load the churchyard map SVG file.</p>
-                        <p>Please ensure "Newbrough Churchyard Survey.svg" is uploaded to your repository.</p>
+                        <p>Looking for: "Newbrough Churchyard survey.svg" or "Newbrough Churchyard.svg"</p>
                         <br>
                         <p><em>You can still search burial records using the link above.</em></p>
                     </div>
