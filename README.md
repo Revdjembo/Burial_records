@@ -4,9 +4,7 @@ A searchable web application for historical parish burial records with interacti
 
 ## 🌐 Live Site
 
-**Visit the database:** [https://yourusername.github.io/burial-records](https://yourusername.github.io/burial-records)
-
-*Replace `yourusername` with your actual GitHub username*
+**Visit the database:** [https://revdjembo.github.io/burial-records](https://revdjembo.github.io/burial-records)
 
 ## 📊 Current Records
 
