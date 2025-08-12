@@ -1,81 +1,4 @@
-        // Make graves in SVG clickable
-        function makeGravesClickable() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-
-            // Find all text elements that contain ONLY numbers (potential grave numbers)
-            const textElements = svg.querySelectorAll('text');
-            let clickableCount = 0;
-            
-            textElements.forEach(textElement => {
-                const textContent = textElement.textContent.trim();
-                
-                // Only process if text is purely numeric and reasonable grave number range
-                if (/^\d+$/.test(textContent)) {
-                    const graveNumber = parseInt(textContent);
-                    
-                    // Only make clickable if it's a reasonable grave number (1-500 range)
-                    if (graveNumber > 0 && graveNumber <= 500) {
-                        textElement.classList.add('clickable-grave');
-                        textElement.style.cursor = 'pointer';
-                        textElement.setAttribute('data-grave', graveNumber);
-                        
-                        // Remove any existing event listeners
-                        textElement.replaceWith(textElement.cloneNode(true));
-                        const newElement = svg.querySelector(`text[data-grave="${graveNumber}"]`);
-                        newElement.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            showGraveInfo(graveNumber);
-                        });
-                        
-                        clickableCount++;
-                    }
-                }
-            });
-            
-            console.log(`Made ${clickableCount} graves clickable`);
-        }
-
-        // Initialize panel dragging        // Initialize panel dragging
-        function initializePanelDragging() {
-            const panel = document.getElementById('info-panel');
-            const header = panel.querySelector('.info-panel-header');
-            
-            header.addEventListener('mousedown', function(e) {
-                panelDragging = true;
-                const rect = panel.getBoundingClientRect();
-                panelStartX = e.clientX - rect.left;
-                panelStartY = e.clientY - rect.top;
-                
-                document.addEventListener('mousemove', dragPanel);
-                document.addEventListener('mouseup', stopDragPanel);
-            });
-        }
-
-        function dragPanel(e) {
-            if (!panelDragging) return;
-            
-            const panel = document.getElementById('info-panel');
-            const newX = e.clientX - panelStartX;
-            const newY = e.clientY - panelStartY;
-            
-            // Keep panel within viewport
-            const maxX = window.innerWidth - panel.offsetWidth;
-            const maxY = window.innerHeight - panel.offsetHeight;
-            
-            const constrainedX = Math.max(0, Math.min(newX, maxX));
-            const constrainedY = Math.max(0, Math.min(newY, maxY));
-            
-            panel.style.left = constrainedX + 'px';
-            panel.style.top = constrainedY + 'px';
-            panel.style.transform = 'none';
-        }
-
-        function stopDragPanel() {
-            panelDragging = false;
-            document.removeEventListener('mousemove', dragPanel);
-            document.removeEventListener('mouseup', stopDragPanel);
-        }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -179,36 +102,8 @@
             border-color: #3498db;
         }
 
-        .map-svg {
-            width: 100%;
-            height: auto;
-            max-height: 70vh;
-            border: 2px solid #ecf0f1;
-            border-radius: 10px;
-            background: #fafafa;
-            object-fit: contain;
-        }
-
-        /* Override any SVG width/height attributes */
-        #map-display svg {
-            width: 100% !important;
-            height: auto !important;
-            max-width: 100%;
-            max-height: 70vh;
-            cursor: grab;
-        }
-
-        #map-display svg:active {
-            cursor: grabbing;
-        }
-
         .map-wrapper {
-            overflow: hidden;
-            border: 2px solid #ecf0f1;
-            border-radius: 10px;
-            background: #fafafa;
             position: relative;
-            max-height: 70vh;
         }
 
         .zoom-controls {
@@ -243,6 +138,16 @@
             transform: scale(1.1);
         }
 
+        .map-display svg {
+            width: 100%;
+            height: auto;
+            cursor: grab;
+        }
+
+        .map-display svg:active {
+            cursor: grabbing;
+        }
+
         .info-panel {
             position: fixed;
             top: 50%;
@@ -257,7 +162,6 @@
             z-index: 1000;
             max-height: 80vh;
             overflow-y: auto;
-            cursor: move;
         }
 
         .info-panel.active {
@@ -280,11 +184,16 @@
             cursor: move;
         }
 
-        .info-panel h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 8px;
+        .close-panel {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .close-panel:hover {
+            color: #e74c3c;
         }
 
         .burial-record {
@@ -303,21 +212,6 @@
         .burial-detail {
             margin-bottom: 5px;
             font-size: 0.9rem;
-        }
-
-        .close-panel {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #7f8c8d;
-        }
-
-        .close-panel:hover {
-            color: #e74c3c;
         }
 
         .legend {
@@ -351,13 +245,11 @@
             font-size: 18px !important;
         }
 
-        /* Arrow pointing to grave */
         .grave-arrow {
             fill: #e74c3c;
             stroke: #c0392b;
             stroke-width: 2;
             animation: bounce 1.5s ease-in-out infinite;
-            transform-origin: center;
         }
 
         @keyframes bounce {
@@ -391,8 +283,8 @@
                 position: fixed;
                 top: auto;
                 bottom: -400px;
-                right: 10px;
                 left: 10px;
+                right: 10px;
                 width: auto;
                 transform: none;
                 transition: bottom 0.3s ease;
@@ -400,7 +292,6 @@
 
             .info-panel.active {
                 bottom: 20px;
-                right: 10px;
             }
 
             .nav-buttons {
@@ -428,15 +319,9 @@
             </div>
 
             <div id="map-display">
-                <!-- SVG will be loaded here -->
                 <div class="no-svg">
                     <h3>Interactive Map Loading...</h3>
-                    <p>The churchyard map will appear here once your SVG file is properly configured.</p>
-                    <br>
-                    <p><strong>Instructions for setup:</strong></p>
-                    <p>1. Ensure your SVG file is named exactly as referenced in the code</p>
-                    <p>2. The SVG should contain text elements with grave numbers</p>
-                    <p>3. Upload the SVG to your GitHub repository</p>
+                    <p>The churchyard map will appear here once loaded.</p>
                 </div>
             </div>
 
@@ -476,462 +361,351 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        let allRecords = [];
-        let currentHighlighted = null;
-        let currentArrow = null;
-        let panelDragging = false;
-        let panelStartX = 0;
-        let panelStartY = 0;
+let allRecords = [];
+let currentHighlighted = null;
+let currentArrow = null;
+let panelDragging = false;
+let panelStartX = 0;
+let panelStartY = 0;
 
-        // Load burial records data
-        async function loadBurialData() {
-            try {
-                const response = await fetch('Newbrough burials from Parish d base.xlsx');
-                if (!response.ok) throw new Error('Could not load burial records');
+async function loadBurialData() {
+    try {
+        const response = await fetch('Newbrough burials from Parish d base.xlsx');
+        if (!response.ok) throw new Error('Could not load burial records');
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        allRecords = XLSX.utils.sheet_to_json(worksheet);
+        
+        console.log('Loaded burial records:', allRecords.length);
+    } catch (error) {
+        console.error('Error loading burial data:', error);
+    }
+}
+
+async function loadMap() {
+    try {
+        const response = await fetch('Newbrough Churchyard Survey.svg');
+        if (!response.ok) throw new Error('SVG file not found');
+        
+        const svgContent = await response.text();
+        
+        document.getElementById('map-display').innerHTML = `
+            <div class="map-wrapper">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="simpleZoomIn()" title="Zoom In">+</button>
+                    <button class="zoom-btn" onclick="simpleZoomOut()" title="Zoom Out">−</button>
+                    <button class="zoom-btn" onclick="resetView()" title="Reset View">⌂</button>
+                </div>
+                <div style="overflow: auto; max-height: 70vh; border: 2px solid #ecf0f1; border-radius: 10px; background: #fafafa;">
+                    ${svgContent}
+                </div>
+            </div>
+        `;
+        
+        makeGravesClickable();
+        initializePanelDragging();
+        checkUrlParameters();
+        
+    } catch (error) {
+        console.error('Error loading SVG:', error);
+        document.getElementById('map-display').innerHTML = `
+            <div class="no-svg">
+                <h3>⚠️ Map Not Available</h3>
+                <p>Could not load the churchyard map SVG file.</p>
+                <p>Looking for: "Newbrough Churchyard Survey.svg"</p>
+                <br>
+                <p><em>You can still search burial records using the link above.</em></p>
+            </div>
+        `;
+    }
+}
+
+function simpleZoomIn() {
+    const svg = document.querySelector('#map-display svg');
+    if (!svg) return;
+    
+    const currentWidth = svg.style.width || '100%';
+    const currentScale = parseFloat(currentWidth.replace('%', '')) / 100 || 1;
+    const newScale = Math.min(currentScale * 1.3, 5);
+    
+    svg.style.width = (newScale * 100) + '%';
+    svg.style.height = 'auto';
+}
+
+function simpleZoomOut() {
+    const svg = document.querySelector('#map-display svg');
+    if (!svg) return;
+    
+    const currentWidth = svg.style.width || '100%';
+    const currentScale = parseFloat(currentWidth.replace('%', '')) / 100 || 1;
+    const newScale = Math.max(currentScale * 0.7, 0.5);
+    
+    svg.style.width = (newScale * 100) + '%';
+    svg.style.height = 'auto';
+}
+
+function resetView() {
+    const svg = document.querySelector('#map-display svg');
+    if (!svg) return;
+    
+    svg.style.width = '100%';
+    svg.style.height = 'auto';
+    
+    const container = svg.closest('div[style*="overflow"]');
+    if (container) {
+        container.scrollTop = 0;
+        container.scrollLeft = 0;
+    }
+}
+
+function makeGravesClickable() {
+    const svg = document.querySelector('#map-display svg');
+    if (!svg) return;
+
+    const textElements = svg.querySelectorAll('text');
+    let clickableCount = 0;
+    
+    textElements.forEach(textElement => {
+        const textContent = textElement.textContent.trim();
+        
+        if (/^\d+$/.test(textContent)) {
+            const graveNumber = parseInt(textContent);
+            
+            if (graveNumber > 0 && graveNumber <= 500) {
+                textElement.classList.add('clickable-grave');
+                textElement.style.cursor = 'pointer';
+                textElement.setAttribute('data-grave', graveNumber);
                 
-                const arrayBuffer = await response.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer);
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                allRecords = XLSX.utils.sheet_to_json(worksheet);
+                textElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showGraveInfo(graveNumber);
+                });
                 
-                console.log('Loaded burial records:', allRecords.length);
-            } catch (error) {
-                console.error('Error loading burial data:', error);
+                clickableCount++;
             }
         }
+    });
+    
+    console.log(`Made ${clickableCount} graves clickable`);
+}
 
-        // Load and display the SVG map
-        async function loadMap() {
-            try {
-                const response = await fetch('Newbrough Churchyard Survey.svg');
-                if (!response.ok) throw new Error('SVG file not found');
-                
-                const svgContent = await response.text();
-                
-                // Simple container with zoom controls
-                document.getElementById('map-display').innerHTML = `
-                    <div class="map-wrapper">
-                        <div class="zoom-controls">
-                            <button class="zoom-btn" onclick="simpleZoomIn()" title="Zoom In">+</button>
-                            <button class="zoom-btn" onclick="simpleZoomOut()" title="Zoom Out">−</button>
-                            <button class="zoom-btn" onclick="resetView()" title="Reset View">⌂</button>
-                        </div>
-                        <div style="overflow: auto; max-height: 70vh; border: 2px solid #ecf0f1; border-radius: 10px; background: #fafafa;">
-                            ${svgContent}
-                        </div>
-                    </div>
-                `;
-                
-                // Make grave numbers clickable
-                makeGravesClickable();
-                
-                // Initialize panel dragging
-                initializePanelDragging();
-                
-                // Check if we need to highlight a specific grave from URL
-                checkUrlParameters();
-                
-            } catch (error) {
-                console.error('Error loading SVG:', error);
-                document.getElementById('map-display').innerHTML = `
-                    <div class="no-svg">
-                        <h3>⚠️ Map Not Available</h3>
-                        <p>Could not load the churchyard map SVG file.</p>
-                        <p>Looking for: "Newbrough Churchyard Survey.svg"</p>
-                        <br>
-                        <p><em>You can still search burial records using the link above.</em></p>
-                    </div>
-                `;
-            }
+function initializePanelDragging() {
+    const panel = document.getElementById('info-panel');
+    const header = panel.querySelector('.info-panel-header');
+    
+    header.addEventListener('mousedown', function(e) {
+        panelDragging = true;
+        const rect = panel.getBoundingClientRect();
+        panelStartX = e.clientX - rect.left;
+        panelStartY = e.clientY - rect.top;
+        
+        document.addEventListener('mousemove', dragPanel);
+        document.addEventListener('mouseup', stopDragPanel);
+    });
+}
+
+function dragPanel(e) {
+    if (!panelDragging) return;
+    
+    const panel = document.getElementById('info-panel');
+    const newX = e.clientX - panelStartX;
+    const newY = e.clientY - panelStartY;
+    
+    const maxX = window.innerWidth - panel.offsetWidth;
+    const maxY = window.innerHeight - panel.offsetHeight;
+    
+    const constrainedX = Math.max(0, Math.min(newX, maxX));
+    const constrainedY = Math.max(0, Math.min(newY, maxY));
+    
+    panel.style.left = constrainedX + 'px';
+    panel.style.top = constrainedY + 'px';
+    panel.style.transform = 'none';
+}
+
+function stopDragPanel() {
+    panelDragging = false;
+    document.removeEventListener('mousemove', dragPanel);
+    document.removeEventListener('mouseup', stopDragPanel);
+}
+
+function showGraveInfo(graveNumber) {
+    const graveRecords = allRecords.filter(record => 
+        record['Grave plan Number'] === graveNumber
+    );
+
+    const panel = document.getElementById('info-panel');
+    const title = document.getElementById('panel-title');
+    const content = document.getElementById('panel-content');
+
+    title.textContent = `Grave ${graveNumber}`;
+    
+    if (graveRecords.length === 0) {
+        content.innerHTML = `
+            <div class="burial-record">
+                <h4>No Records Found</h4>
+                <p>No burial records found for grave ${graveNumber}.</p>
+                <p><em>This may indicate an empty grave or records not yet digitized.</em></p>
+            </div>
+        `;
+    } else {
+        content.innerHTML = graveRecords.map(record => `
+            <div class="burial-record">
+                <h4>${record.Forename} ${record.Surname}</h4>
+                <div class="burial-detail"><strong>Date:</strong> ${record.Date || 'Not recorded'}</div>
+                <div class="burial-detail"><strong>Age:</strong> ${record.Age || 'Not recorded'}</div>
+                <div class="burial-detail"><strong>Location:</strong> ${record.Of || 'Not recorded'}</div>
+            </div>
+        `).join('');
+    }
+
+    panel.classList.add('active');
+    highlightGrave(graveNumber);
+}
+
+function highlightGrave(graveNumber) {
+    clearHighlight();
+    
+    const svg = document.querySelector('#map-display svg');
+    if (!svg) return;
+
+    const textElements = svg.querySelectorAll('text');
+    let found = false;
+    let graveElement = null;
+    
+    textElements.forEach(textElement => {
+        const textContent = textElement.textContent.trim();
+        if (textContent == graveNumber && /^\d+$/.test(textContent)) {
+            textElement.classList.add('highlighted-grave');
+            currentHighlighted = textElement;
+            graveElement = textElement;
+            found = true;
         }
+    });
+    
+    if (found && graveElement) {
+        addArrowToGrave(graveElement);
+        centerGraveInView(graveElement);
+    } else {
+        console.warn(`Grave ${graveNumber} not found on map`);
+        const existingContent = document.getElementById('panel-content').innerHTML;
+        document.getElementById('panel-content').innerHTML = 
+            '<div style="background: #f39c12; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px;">' +
+            '<strong>⚠️ Grave location not visible on map</strong><br>' +
+            'This grave number may not be marked on the current map view.' +
+            '</div>' + existingContent;
+    }
+}
 
-        // Simple zoom functions
-        function simpleZoomIn() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-            
-            const currentWidth = svg.style.width || '100%';
-            const currentScale = parseFloat(currentWidth.replace('%', '')) / 100 || 1;
-            const newScale = Math.min(currentScale * 1.3, 5);
-            
-            svg.style.width = (newScale * 100) + '%';
-            svg.style.height = 'auto';
-        }
+function addArrowToGrave(graveElement) {
+    const svg = document.querySelector('#map-display svg');
+    if (!svg || !graveElement) return;
 
-        function simpleZoomOut() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-            
-            const currentWidth = svg.style.width || '100%';
-            const currentScale = parseFloat(currentWidth.replace('%', '')) / 100 || 1;
-            const newScale = Math.max(currentScale * 0.7, 0.5);
-            
-            svg.style.width = (newScale * 100) + '%';
-            svg.style.height = 'auto';
-        }
+    try {
+        const bbox = graveElement.getBBox();
+        const arrowX = bbox.x + bbox.width / 2;
+        const arrowY = bbox.y - 15;
 
-        function resetView() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-            
-            svg.style.width = '100%';
-            svg.style.height = 'auto';
-            
-            // Scroll back to top-left
-            const container = svg.closest('div[style*="overflow"]');
-            if (container) {
-                container.scrollTop = 0;
-                container.scrollLeft = 0;
-            }
-        }
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        arrow.setAttribute('points', `${arrowX},${arrowY} ${arrowX-8},${arrowY-15} ${arrowX+8},${arrowY-15}`);
+        arrow.setAttribute('class', 'grave-arrow');
+        arrow.setAttribute('id', 'grave-arrow');
+        
+        svg.appendChild(arrow);
+        currentArrow = arrow;
+    } catch (error) {
+        console.warn('Could not add arrow:', error);
+    }
+}
 
-        // Initialize zoom and pan functionality
-        function initializeZoomPan() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
+function centerGraveInView(graveElement) {
+    if (!graveElement) return;
 
-            // Store original viewBox or create one
-            if (svg.viewBox && svg.viewBox.baseVal) {
-                originalViewBox = {
-                    x: svg.viewBox.baseVal.x,
-                    y: svg.viewBox.baseVal.y,
-                    width: svg.viewBox.baseVal.width,
-                    height: svg.viewBox.baseVal.height
-                };
-            } else {
-                // Create viewBox from SVG dimensions
-                const bbox = svg.getBBox();
-                originalViewBox = {
-                    x: bbox.x,
-                    y: bbox.y,
-                    width: bbox.width,
-                    height: bbox.height
-                };
-                svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-            }
-
-            viewBox = { ...originalViewBox };
-            
-            // Ensure SVG is properly sized
-            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-            
-            console.log('Original viewBox:', originalViewBox);
-
-            // Mouse wheel zoom
-            svg.addEventListener('wheel', function(e) {
-                e.preventDefault();
-                const rect = svg.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width;
-                const y = (e.clientY - rect.top) / rect.height;
-                
-                const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
-                zoomAtPoint(x, y, zoomFactor);
-            });
-
-            // Mouse drag to pan
-            let isDragging = false;
-            let lastX = 0;
-            let lastY = 0;
-
-            svg.addEventListener('mousedown', function(e) {
-                isDragging = true;
-                const rect = svg.getBoundingClientRect();
-                lastX = (e.clientX - rect.left) / rect.width;
-                lastY = (e.clientY - rect.top) / rect.height;
-                svg.style.cursor = 'grabbing';
-            });
-
-            svg.addEventListener('mousemove', function(e) {
-                if (!isDragging) return;
-                
-                const rect = svg.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width;
-                const y = (e.clientY - rect.top) / rect.height;
-                
-                const dx = (x - lastX) * viewBox.width;
-                const dy = (y - lastY) * viewBox.height;
-                
-                viewBox.x -= dx;
-                viewBox.y -= dy;
-                
-                updateViewBox();
-                
-                lastX = x;
-                lastY = y;
-            });
-
-            svg.addEventListener('mouseup', function() {
-                isDragging = false;
-                svg.style.cursor = 'grab';
-            });
-
-            svg.addEventListener('mouseleave', function() {
-                isDragging = false;
-                svg.style.cursor = 'grab';
-            });
-        }
-
-        // Zoom at a specific point (x and y are 0-1 normalized coordinates)
-        function zoomAtPoint(x, y, factor) {
-            const newWidth = viewBox.width * factor;
-            const newHeight = viewBox.height * factor;
-            
-            // Prevent excessive zoom
-            const maxZoom = 10;
-            const minZoom = 0.5;
-            const currentZoomLevel = originalViewBox.width / viewBox.width;
-            const newZoomLevel = currentZoomLevel / factor;
-            
-            if (newZoomLevel > maxZoom || newZoomLevel < minZoom) return;
-            
-            viewBox.x += (viewBox.width - newWidth) * x;
-            viewBox.y += (viewBox.height - newHeight) * y;
-            viewBox.width = newWidth;
-            viewBox.height = newHeight;
-            
-            currentZoom = originalViewBox.width / viewBox.width;
-            updateViewBox();
-        }
-
-        // Update the SVG viewBox
-        function updateViewBox() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-            
-            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
-        }
-
-        // Zoom controls
-        function zoomIn() {
-            zoomAtPoint(0.5, 0.5, 0.8); // Zoom into center
-        }
-
-        function zoomOut() {
-            zoomAtPoint(0.5, 0.5, 1.25); // Zoom out from center
-        }
-
-        function resetZoom() {
-            viewBox = { ...originalViewBox };
-            currentZoom = 1;
+    try {
+        const bbox = graveElement.getBBox();
+        const container = document.querySelector('div[style*="overflow"]');
+        
+        if (container) {
+            const centerX = bbox.x + bbox.width / 2;
+            const centerY = bbox.y + bbox.height / 2;
             
             const svg = document.querySelector('#map-display svg');
             if (svg) {
-                svg.style.transition = 'all 0.5s ease-in-out';
-                updateViewBox();
-                setTimeout(() => {
-                    svg.style.transition = '';
-                }, 500);
+                svg.style.width = '250%';
+                svg.style.height = 'auto';
             }
-        }
-        function makeGravesClickable() {
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-
-            // Find all text elements that contain ONLY numbers (potential grave numbers)
-            const textElements = svg.querySelectorAll('text');
-            let clickableCount = 0;
             
-            textElements.forEach(textElement => {
-                const textContent = textElement.textContent.trim();
+            setTimeout(() => {
+                const scrollX = (centerX * 2.5) - (container.clientWidth / 2);
+                const scrollY = (centerY * 2.5) - (container.clientHeight / 2);
                 
-                // Only process if text is purely numeric and reasonable grave number range
-                if (/^\d+$/.test(textContent)) {
-                    const graveNumber = parseInt(textContent);
-                    
-                    // Only make clickable if it's a reasonable grave number (1-500 range)
-                    if (graveNumber > 0 && graveNumber <= 500) {
-                        textElement.classList.add('clickable-grave');
-                        textElement.style.cursor = 'pointer';
-                        textElement.setAttribute('data-grave', graveNumber);
-                        
-                        // Remove any existing event listeners
-                        textElement.replaceWith(textElement.cloneNode(true));
-                        const newElement = svg.querySelector(`text[data-grave="${graveNumber}"]`);
-                        newElement.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            showGraveInfo(graveNumber);
-                        });
-                        
-                        clickableCount++;
-                    }
-                }
-            });
-            
-            console.log(`Made ${clickableCount} graves clickable`);
+                container.scrollTo({
+                    left: Math.max(0, scrollX),
+                    top: Math.max(0, scrollY),
+                    behavior: 'smooth'
+                });
+            }, 100);
         }
+    } catch (error) {
+        console.warn('Could not center grave:', error);
+    }
+}
 
-        // Show information for a specific grave
-        function showGraveInfo(graveNumber) {
-            const graveRecords = allRecords.filter(record => 
-                record['Grave plan Number'] === graveNumber
-            );
+function clearHighlight() {
+    if (currentHighlighted) {
+        currentHighlighted.classList.remove('highlighted-grave');
+        currentHighlighted = null;
+    }
+    
+    if (currentArrow) {
+        currentArrow.remove();
+        currentArrow = null;
+    }
+}
 
-            const panel = document.getElementById('info-panel');
-            const title = document.getElementById('panel-title');
-            const content = document.getElementById('panel-content');
+function findGrave() {
+    const graveNumber = document.getElementById('grave-search').value.trim();
+    if (graveNumber && !isNaN(graveNumber)) {
+        showGraveInfo(parseInt(graveNumber));
+    }
+}
 
-            title.textContent = `Grave ${graveNumber}`;
-            
-            if (graveRecords.length === 0) {
-                content.innerHTML = `
-                    <div class="burial-record">
-                        <h4>No Records Found</h4>
-                        <p>No burial records found for grave ${graveNumber}.</p>
-                        <p><em>This may indicate an empty grave or records not yet digitized.</em></p>
-                    </div>
-                `;
-            } else {
-                content.innerHTML = graveRecords.map(record => `
-                    <div class="burial-record">
-                        <h4>${record.Forename} ${record.Surname}</h4>
-                        <div class="burial-detail"><strong>Date:</strong> ${record.Date || 'Not recorded'}</div>
-                        <div class="burial-detail"><strong>Age:</strong> ${record.Age || 'Not recorded'}</div>
-                        <div class="burial-detail"><strong>Location:</strong> ${record.Of || 'Not recorded'}</div>
-                    </div>
-                `).join('');
+function showFullMap() {
+    closeInfoPanel();
+    clearHighlight();
+}
+
+function closeInfoPanel() {
+    document.getElementById('info-panel').classList.remove('active');
+}
+
+function checkUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const graveParam = urlParams.get('grave');
+    const nameParam = urlParams.get('name');
+    
+    if (graveParam) {
+        setTimeout(() => {
+            showGraveInfo(parseInt(graveParam));
+            if (nameParam) {
+                document.getElementById('panel-title').textContent = 
+                    `Grave ${graveParam} - ${decodeURIComponent(nameParam)}`;
             }
+        }, 500);
+    }
+}
 
-            panel.classList.add('active');
-            highlightGrave(graveNumber);
-        }
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && e.target.id === 'grave-search') {
+        findGrave();
+    }
+});
 
-        // Highlight a specific grave on the map
-        function highlightGrave(graveNumber) {
-            clearHighlight();
-            
-            const svg = document.querySelector('#map-display svg');
-            if (!svg) return;
-
-            // Find the specific text element with this grave number
-            const textElements = svg.querySelectorAll('text');
-            let found = false;
-            let graveElement = null;
-            
-            textElements.forEach(textElement => {
-                const textContent = textElement.textContent.trim();
-                if (textContent == graveNumber && /^\d+$/.test(textContent)) {
-                    textElement.classList.add('highlighted-grave');
-                    currentHighlighted = textElement;
-                    graveElement = textElement;
-                    found = true;
-                }
-            });
-            
-            if (found && graveElement) {
-                // Zoom in and center on the grave
-                zoomToGrave(graveElement);
-            } else {
-                console.warn(`Grave ${graveNumber} not found on map`);
-                // Still show the info panel even if we can't highlight
-                const panel = document.getElementById('info-panel');
-                const existingContent = document.getElementById('panel-content').innerHTML;
-                document.getElementById('panel-content').innerHTML = 
-                    '<div style="background: #f39c12; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px;">' +
-                    '<strong>⚠️ Grave location not visible on map</strong><br>' +
-                    'This grave number may not be marked on the current map view.' +
-                    '</div>' + existingContent;
-            }
-        }
-
-        // Zoom to and center on a specific grave
-        function zoomToGrave(graveElement) {
-            if (!graveElement || !originalViewBox) return;
-
-            try {
-                // Get the bounding box of the grave element
-                const bbox = graveElement.getBBox();
-                
-                // Calculate the center of the grave
-                const graveCenterX = bbox.x + bbox.width / 2;
-                const graveCenterY = bbox.y + bbox.height / 2;
-                
-                // Set zoom level (zoom in to show detail)
-                const zoomLevel = 3;
-                const newWidth = originalViewBox.width / zoomLevel;
-                const newHeight = originalViewBox.height / zoomLevel;
-                
-                // Center the viewBox on the grave
-                viewBox.x = graveCenterX - newWidth / 2;
-                viewBox.y = graveCenterY - newHeight / 2;
-                viewBox.width = newWidth;
-                viewBox.height = newHeight;
-                
-                currentZoom = zoomLevel;
-                
-                // Apply with smooth transition
-                const svg = document.querySelector('#map-display svg');
-                if (svg) {
-                    svg.style.transition = 'all 0.8s ease-in-out';
-                    updateViewBox();
-                    
-                    setTimeout(() => {
-                        svg.style.transition = '';
-                    }, 800);
-                }
-                
-            } catch (error) {
-                console.warn('Could not zoom to grave:', error);
-                // Fallback: just zoom in at current position
-                zoomAtPoint(0.5, 0.5, 0.3);
-            }
-        }
-
-        // Clear any highlighting
-        function clearHighlight() {
-            if (currentHighlighted) {
-                currentHighlighted.classList.remove('highlighted-grave');
-                currentHighlighted = null;
-            }
-        }
-
-        // Find grave by number
-        function findGrave() {
-            const graveNumber = document.getElementById('grave-search').value.trim();
-            if (graveNumber && !isNaN(graveNumber)) {
-                showGraveInfo(parseInt(graveNumber));
-            }
-        }
-
-        // Show full map view
-        function showFullMap() {
-            closeInfoPanel();
-            clearHighlight();
-        }
-
-        // Close the info panel
-        function closeInfoPanel() {
-            document.getElementById('info-panel').classList.remove('active');
-        }
-
-        // Check URL parameters for specific grave to highlight
-        function checkUrlParameters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const graveParam = urlParams.get('grave');
-            const nameParam = urlParams.get('name');
-            
-            if (graveParam) {
-                setTimeout(() => {
-                    showGraveInfo(parseInt(graveParam));
-                    if (nameParam) {
-                        document.getElementById('panel-title').textContent = 
-                            `Grave ${graveParam} - ${decodeURIComponent(nameParam)}`;
-                    }
-                }, 500); // Small delay to ensure SVG is loaded
-            }
-        }
-
-        // Handle Enter key in search
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && e.target.id === 'grave-search') {
-                findGrave();
-            }
-        });
-
-        // Initialize the map
-        window.addEventListener('load', async function() {
-            await loadBurialData();
-            await loadMap();
-        });
+window.addEventListener('load', async function() {
+    await loadBurialData();
+    await loadMap();
+});
     </script>
 </body>
 </html>
