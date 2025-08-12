@@ -1,4 +1,43 @@
-        // Make graves in SVG clickable<!DOCTYPE html>
+        // Make graves in SVG clickable        // Initialize panel dragging
+        function initializePanelDragging() {
+            const panel = document.getElementById('info-panel');
+            const header = panel.querySelector('.info-panel-header');
+            
+            header.addEventListener('mousedown', function(e) {
+                panelDragging = true;
+                const rect = panel.getBoundingClientRect();
+                panelStartX = e.clientX - rect.left;
+                panelStartY = e.clientY - rect.top;
+                
+                document.addEventListener('mousemove', dragPanel);
+                document.addEventListener('mouseup', stopDragPanel);
+            });
+        }
+
+        function dragPanel(e) {
+            if (!panelDragging) return;
+            
+            const panel = document.getElementById('info-panel');
+            const newX = e.clientX - panelStartX;
+            const newY = e.clientY - panelStartY;
+            
+            // Keep panel within viewport
+            const maxX = window.innerWidth - panel.offsetWidth;
+            const maxY = window.innerHeight - panel.offsetHeight;
+            
+            const constrainedX = Math.max(0, Math.min(newX, maxX));
+            const constrainedY = Math.max(0, Math.min(newY, maxY));
+            
+            panel.style.left = constrainedX + 'px';
+            panel.style.top = constrainedY + 'px';
+            panel.style.transform = 'none';
+        }
+
+        function stopDragPanel() {
+            panelDragging = false;
+            document.removeEventListener('mousemove', dragPanel);
+            document.removeEventListener('mouseup', stopDragPanel);
+        }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -169,21 +208,38 @@
         .info-panel {
             position: fixed;
             top: 50%;
-            right: -400px;
+            left: -400px;
             transform: translateY(-50%);
             width: 350px;
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             padding: 25px;
-            transition: right 0.3s ease;
+            transition: left 0.3s ease;
             z-index: 1000;
             max-height: 80vh;
             overflow-y: auto;
+            cursor: move;
         }
 
         .info-panel.active {
-            right: 20px;
+            left: 20px;
+        }
+
+        .info-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: move;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .drag-handle {
+            color: #7f8c8d;
+            font-size: 18px;
+            cursor: move;
         }
 
         .info-panel h3 {
@@ -252,24 +308,26 @@
         .highlighted-grave {
             fill: #e74c3c !important;
             stroke: #c0392b !important;
-            stroke-width: 4px !important;
-            animation: pulse 2s infinite;
+            stroke-width: 3px !important;
             font-weight: bold !important;
-            font-size: 16px !important;
+            font-size: 18px !important;
         }
 
-        @keyframes pulse {
-            0% { 
-                opacity: 1; 
-                transform: scale(1);
+        /* Arrow pointing to grave */
+        .grave-arrow {
+            fill: #e74c3c;
+            stroke: #c0392b;
+            stroke-width: 2;
+            animation: bounce 1.5s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        @keyframes bounce {
+            0%, 100% { 
+                transform: translateY(0px);
             }
             50% { 
-                opacity: 0.8; 
-                transform: scale(1.2);
-            }
-            100% { 
-                opacity: 1; 
-                transform: scale(1);
+                transform: translateY(-8px);
             }
         }
 
@@ -366,8 +424,13 @@
     </div>
 
     <div class="info-panel" id="info-panel">
-        <button class="close-panel" onclick="closeInfoPanel()">×</button>
-        <h3 id="panel-title">Grave Information</h3>
+        <div class="info-panel-header">
+            <h3 id="panel-title">Grave Information</h3>
+            <div>
+                <span class="drag-handle" title="Drag to move">⋮⋮</span>
+                <button class="close-panel" onclick="closeInfoPanel()">×</button>
+            </div>
+        </div>
         <div id="panel-content">
             <p>Click on a grave number to see burial records.</p>
         </div>
@@ -377,9 +440,10 @@
     <script>
         let allRecords = [];
         let currentHighlighted = null;
-        let currentZoom = 1;
-        let viewBox = { x: 0, y: 0, width: 0, height: 0 };
-        let originalViewBox = null;
+        let currentArrow = null;
+        let panelDragging = false;
+        let panelStartX = 0;
+        let panelStartY = 0;
 
         // Load burial records data
         async function loadBurialData() {
@@ -406,23 +470,25 @@
                 
                 const svgContent = await response.text();
                 
-                // Wrap SVG in container with zoom controls
+                // Simple container with zoom controls
                 document.getElementById('map-display').innerHTML = `
                     <div class="map-wrapper">
                         <div class="zoom-controls">
-                            <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
-                            <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">−</button>
-                            <button class="zoom-btn" onclick="resetZoom()" title="Reset View">⌂</button>
+                            <button class="zoom-btn" onclick="simpleZoomIn()" title="Zoom In">+</button>
+                            <button class="zoom-btn" onclick="simpleZoomOut()" title="Zoom Out">−</button>
+                            <button class="zoom-btn" onclick="resetView()" title="Reset View">⌂</button>
                         </div>
-                        ${svgContent}
+                        <div style="overflow: auto; max-height: 70vh; border: 2px solid #ecf0f1; border-radius: 10px; background: #fafafa;">
+                            ${svgContent}
+                        </div>
                     </div>
                 `;
                 
-                // Initialize zoom and pan functionality
-                initializeZoomPan();
-                
                 // Make grave numbers clickable
                 makeGravesClickable();
+                
+                // Initialize panel dragging
+                initializePanelDragging();
                 
                 // Check if we need to highlight a specific grave from URL
                 checkUrlParameters();
@@ -438,6 +504,46 @@
                         <p><em>You can still search burial records using the link above.</em></p>
                     </div>
                 `;
+            }
+        }
+
+        // Simple zoom functions
+        function simpleZoomIn() {
+            const svg = document.querySelector('#map-display svg');
+            if (!svg) return;
+            
+            const currentWidth = svg.style.width || '100%';
+            const currentScale = parseFloat(currentWidth.replace('%', '')) / 100 || 1;
+            const newScale = Math.min(currentScale * 1.3, 5);
+            
+            svg.style.width = (newScale * 100) + '%';
+            svg.style.height = 'auto';
+        }
+
+        function simpleZoomOut() {
+            const svg = document.querySelector('#map-display svg');
+            if (!svg) return;
+            
+            const currentWidth = svg.style.width || '100%';
+            const currentScale = parseFloat(currentWidth.replace('%', '')) / 100 || 1;
+            const newScale = Math.max(currentScale * 0.7, 0.5);
+            
+            svg.style.width = (newScale * 100) + '%';
+            svg.style.height = 'auto';
+        }
+
+        function resetView() {
+            const svg = document.querySelector('#map-display svg');
+            if (!svg) return;
+            
+            svg.style.width = '100%';
+            svg.style.height = 'auto';
+            
+            // Scroll back to top-left
+            const container = svg.closest('div[style*="overflow"]');
+            if (container) {
+                container.scrollTop = 0;
+                container.scrollLeft = 0;
             }
         }
 
